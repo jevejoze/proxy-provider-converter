@@ -4,9 +4,8 @@ const atob = require("atob")
 
 module.exports = async (req, res) => {
   const url = req.query.url;
-  const source = req.query.source;
   const target = req.query.target;
-  const exclude = req.query.exclude;
+  const exclude = req.query.exclude || '过期|剩余';
   console.log(`query: ${JSON.stringify(req.query)}`);
   if (url === undefined) {
     res.status(400).send("Missing parameter: url");
@@ -30,20 +29,26 @@ module.exports = async (req, res) => {
   }
 
   let config = null;
-  if (source === "ssr") {
+  console.log(`Parsing YAML`);
+  try {
+    config = YAML.parse(configFile);
+    console.log(`👌 Parsed YAML`);
+  } catch (error) {
+  }
+
+  if (config.proxies === undefined) {
     configFile = atob(configFile);
     const links = configFile.split(/\r?\n/).filter(line => line.trim() !== "");
     const proxies = [];
-    console.log(exclude);
     links.forEach(element => {
       let uri = element.split('://');
       const config = atob(uri[1]).split(':');
 
       let p = config[5].split("/?");
       let params = new URLSearchParams(p[1])
-      let name = new Buffer(params.get("remarks"),"base64").toString();
+      let name = new Buffer(params.get("remarks"), "base64").toString();
 
-      if (exclude && name.match(exclude)){
+      if (exclude && name.match(exclude)) {
         return;
       }
 
@@ -64,20 +69,11 @@ module.exports = async (req, res) => {
     config = {
       proxies: proxies
     }
-  } else {
-    console.log(`Parsing YAML`);
-    try {
-      config = YAML.parse(configFile);
-      console.log(`👌 Parsed YAML`);
-    } catch (error) {
-      res.status(500).send(`Unable parse config, error: ${error}`);
-      return;
-    }
+  }
 
-    if (config.proxies === undefined) {
-      res.status(400).send("No proxies in this config");
-      return;
-    }
+  if (config.proxies === undefined) {
+    res.status(400).send("No proxies in this config");
+    return;
   }
 
   if (target === "surge") {
