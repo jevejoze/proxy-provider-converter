@@ -1,9 +1,12 @@
 const YAML = require("yaml");
 const axios = require("axios");
+const atob = require("atob")
 
 module.exports = async (req, res) => {
   const url = req.query.url;
+  const source = req.query.source;
   const target = req.query.target;
+  const exclude = req.query.exclude;
   console.log(`query: ${JSON.stringify(req.query)}`);
   if (url === undefined) {
     res.status(400).send("Missing parameter: url");
@@ -26,29 +29,65 @@ module.exports = async (req, res) => {
     return;
   }
 
-  console.log(`Parsing YAML`);
   let config = null;
-  try {
-    config = YAML.parse(configFile);
-    console.log(`👌 Parsed YAML`);
-  } catch (error) {
-    res.status(500).send(`Unable parse config, error: ${error}`);
-    return;
-  }
+  if (source === "ssr") {
+    configFile = atob(configFile);
+    const links = configFile.split(/\r?\n/).filter(line => line.trim() !== "");
+    const proxies = [];
+    console.log(exclude);
+    links.forEach(element => {
+      let uri = element.split('://');
+      const config = atob(uri[1]).split(':');
+      
+      let p = config[5].split("/?");
+      let params = new URLSearchParams(p[1])
+      let name = new Buffer(params.get("remarks"),"base64").toString();
+      
+      if (exclude && name.match(exclude)){
+        return;
+      }
 
-  if (config.proxies === undefined) {
-    res.status(400).send("No proxies in this config");
-    return;
+      let proxy = {
+        name: name,
+        server: config[0],
+        port: parseInt(config[1]),
+        type: uri[0],
+        password: atob(p[0]),
+        cipher: config[3],
+        obfs: config[4],
+        protocol: config[2],
+        'proto-param': atob(params.get("protoparam")),
+        'obfs-param': atob(params.get('obfsparam'))
+      }
+      proxies.push(proxy);
+    });
+    config = {
+      proxies: proxies
+    }
+  } else {
+    console.log(`Parsing YAML`);
+    try {
+      config = YAML.parse(configFile);
+      console.log(`👌 Parsed YAML`);
+    } catch (error) {
+      res.status(500).send(`Unable parse config, error: ${error}`);
+      return;
+    }
+
+    if (config.proxies === undefined) {
+      res.status(400).send("No proxies in this config");
+      return;
+    }
   }
 
   if (target === "surge") {
     const supportedProxies = config.proxies.filter((proxy) =>
-      ["ss", "vmess", "trojan"].includes(proxy.type)
+      ["ssr", "vmess", "trojan"].includes(proxy.type)
     );
     const surgeProxies = supportedProxies.map((proxy) => {
       console.log(proxy.server);
       const common = `${proxy.name} = ${proxy.type}, ${proxy.server}, ${proxy.port}`;
-      if (proxy.type === "ss") {
+      if (proxy.type === "ssr") {
         // ProxySS = ss, example.com, 2021, encrypt-method=xchacha20-ietf-poly1305, password=12345, obfs=http, obfs-host=example.com, udp-relay=true
         if (proxy.plugin === "v2ray-plugin") {
           console.log(
