@@ -38,11 +38,11 @@ module.exports = async (req, res) => {
     links.forEach(element => {
       let uri = element.split('://');
       const config = atob(uri[1]).split(':');
-      
+
       let p = config[5].split("/?");
       let params = new URLSearchParams(p[1])
       let name = new Buffer(params.get("remarks"),"base64").toString();
-      
+
       if (exclude && name.match(exclude)){
         return;
       }
@@ -56,7 +56,7 @@ module.exports = async (req, res) => {
         cipher: config[3],
         obfs: config[4],
         protocol: config[2],
-        'proto-param': atob(params.get("protoparam")),
+        'protocol-param': atob(params.get("protoparam")),
         'obfs-param': atob(params.get('obfsparam'))
       }
       proxies.push(proxy);
