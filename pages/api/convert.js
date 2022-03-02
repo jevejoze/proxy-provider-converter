@@ -1,11 +1,14 @@
 const YAML = require("yaml");
+const TOML = require("toml");
+const fs = require('fs')
+const path = require('path')
 const axios = require("axios");
-const atob = require("atob")
+const atob = require("atob");
 
 module.exports = async (req, res) => {
   const url = req.query.url;
   const target = req.query.target;
-  const exclude = req.query.exclude || '过期|剩余';
+  const exclude = req.query.exclude || '过期|剩余|本站|网址';
   console.log(`query: ${JSON.stringify(req.query)}`);
   if (url === undefined) {
     res.status(400).send("Missing parameter: url");
@@ -37,6 +40,15 @@ module.exports = async (req, res) => {
   }
 
   if (config.proxies === undefined) {
+    var emoji;
+    try {
+      const data = fs.readFileSync(path.resolve("emoji.toml"), 'utf8')
+      emoji = TOML.parse(data);
+    } catch (err) {
+      console.error(err)
+    }
+
+
     configFile = atob(configFile);
     const links = configFile.split(/\r?\n/).filter(line => line.trim() !== "");
     const proxies = [];
@@ -47,13 +59,14 @@ module.exports = async (req, res) => {
       let p = config[5].split("/?");
       let params = new URLSearchParams(p[1])
       let name = new Buffer(params.get("remarks"), "base64").toString();
-
       if (exclude && name.match(exclude)) {
         return;
       }
+      
+      let e = emoji.emoji.find(e => name.match(e.match.replace("?i:",""))).emoji;
 
       let proxy = {
-        name: name,
+        name: e + " " +name,
         server: config[0],
         port: parseInt(config[1]),
         type: uri[0],

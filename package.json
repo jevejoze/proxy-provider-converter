@@ -18,7 +18,8 @@
     "react-copy-to-clipboard": "^5.0.3",
     "react-dom": "^17.0.2",
     "react-hot-toast": "^2.0.0",
-    "yaml": "^1.10.2"
+    "yaml": "^1.10.2",
+    "toml": "^3.0.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.2.6",
