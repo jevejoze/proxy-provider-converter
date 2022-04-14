@@ -60,9 +60,6 @@ module.exports = async (req, res) => {
       let p = config[5].split("/?");
       let params = new URLSearchParams(p[1])
       let name = new Buffer(params.get("remarks"), "base64").toString();
-      if (exclude && name.match(exclude)) {
-        return;
-      }
       
       let e = emoji.emoji.find(e => name.match(e.match.replace("?i:",""))).emoji;
 
@@ -88,6 +85,18 @@ module.exports = async (req, res) => {
   if (config.proxies === undefined) {
     res.status(400).send("No proxies in this config");
     return;
+  }
+
+  if (exclude){
+    config.proxies = config.proxies.filter(proxy => {
+      return !proxy.name.match(exclude);
+    });
+  }
+
+  if (include){
+    config.proxies = config.proxies.filter(proxy => {
+      return proxy.name.match(include);
+    });
   }
 
   if (target === "surge") {
@@ -163,7 +172,7 @@ module.exports = async (req, res) => {
     const proxies = surgeProxies.filter((p) => p !== undefined);
     res.status(200).send(proxies.join("\n"));
   } else {
-    const response = YAML.stringify({ proxies: config.proxies.filter((p)=> include && p.name.match(include)) });
+    const response = YAML.stringify({ proxies: config.proxies });
     res.status(200).send(response);
   }
 };
