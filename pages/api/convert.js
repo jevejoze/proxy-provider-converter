@@ -8,7 +8,7 @@ const atob = require("atob");
 module.exports = async (req, res) => {
   const url = req.query.url;
   const target = req.query.target;
-  const exclude = req.query.exclude || '过期|剩余|本站|网址';
+  const exclude = req.query.exclude || '过期|剩余|本站|网址|官网|注意';
   const include = req.query.include;
   console.log(`query: ${JSON.stringify(req.query)}`);
   if (url === undefined) {
