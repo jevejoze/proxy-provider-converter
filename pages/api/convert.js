@@ -10,6 +10,7 @@ module.exports = async (req, res) => {
   const target = req.query.target;
   const exclude = req.query.exclude || '过期|剩余|本站|网址|官网|注意';
   const include = req.query.include;
+  const origin = req.query.origin;
   console.log(`query: ${JSON.stringify(req.query)}`);
   if (url === undefined) {
     res.status(400).send("Missing parameter: url");
@@ -18,12 +19,17 @@ module.exports = async (req, res) => {
 
   console.log(`Fetching url: ${url}`);
   let configFile = null;
+  let userAgent = "ClashX Pro/1.72.0.4 (com.west2online.ClashXPro; build:1.72.0.4; macOS 12.0.1) Alamofire/5.4.4";
+  if(origin === "ssr"){
+    userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36";
+  }
+
   try {
     const result = await axios({
       url,
       headers: {
         "User-Agent":
-          "ClashX Pro/1.72.0.4 (com.west2online.ClashXPro; build:1.72.0.4; macOS 12.0.1) Alamofire/5.4.4",
+          userAgent,
       },
     });
     configFile = result.data;
